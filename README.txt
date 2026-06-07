@@ -9,14 +9,34 @@ The only file you need is:  whiteboard.html
 can ignore or delete it — you do not need it to use the whiteboard.)
 
 
-HOW TO OPEN
------------
+HOW TO OPEN (on your Mac)
+-------------------------
 Double-click  whiteboard.html.  It opens in your web browser (Chrome or Safari).
 
 Want it one click away?
   • Mac Dock: drag whiteboard.html onto the right side of the Dock.
   • Or in your browser: File > Add to Dock (Chrome) / drag the tab to make it
     its own window, then add to Dock.
+
+
+USE IT ON YOUR iPHONE (or any device) — the web link
+-----------------------------------------------------
+The whiteboard is also live on the web at:
+
+    https://matthewjfarmer12-gif.github.io/water-polo-whiteboard/
+
+On your iPhone:
+  1. Open that link in Safari.
+  2. Tap the Share button (the square with the up-arrow).
+  3. Tap "Add to Home Screen."
+  4. Now it has its own app icon and opens full-screen like an app.
+
+Notes:
+  • The page is public (anyone with the exact link can open the blank board),
+    but your saved boards are NEVER uploaded — they stay only on your device.
+  • Each device keeps its OWN boards (Mac and iPhone are separate). To copy
+    boards between them, use Backup on one device and Restore on the other.
+  • To update the web version later, just ask Claude to publish the change.
 
 
 THE BASICS
