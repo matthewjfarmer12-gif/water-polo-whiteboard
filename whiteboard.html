@@ -381,14 +381,29 @@ function pieceInner(p){
   return s;
 }
 function selRing(p){
-  if(p.type==="goal") return `<rect x="-38" y="-16" width="76" height="32" fill="none" stroke="#ff9800" stroke-width="2.5" stroke-dasharray="5 3"/>`;
+  if(p.type==="goal") return `<circle r="40" fill="none" stroke="#ff9800" stroke-width="2.5" stroke-dasharray="5 3"/>`;
   if(p.type==="text") return `<rect x="-34" y="-15" width="68" height="30" fill="none" stroke="#ff9800" stroke-width="2.5" stroke-dasharray="5 3"/>`;
   return `<circle r="24" fill="none" stroke="#ff9800" stroke-width="2.5" stroke-dasharray="5 3"/>`;
 }
+function rotateHandle(id){
+  // a tap target that rotates a goal 90°; sits above the piece and does NOT rotate with it
+  return `<g data-rotate="${id}" style="cursor:pointer">`+
+    `<circle cx="0" cy="-42" r="14" fill="#0b6bcb" stroke="#fff" stroke-width="2"/>`+
+    `<text x="0" y="-42" text-anchor="middle" dominant-baseline="central" font-size="17" font-weight="700" fill="#fff" font-family="Arial">↻</text></g>`;
+}
 function renderPiece(p){
-  const rot=p.type==="goal"?` rotate(${p.rot||0})`:"";
-  const ring=p.id===selectedId?selRing(p):"";
-  return `<g data-id="${p.id}" data-kind="piece" class="piece" transform="translate(${p.x},${p.y})${rot}">${ring}${pieceInner(p)}</g>`;
+  const sel=p.id===selectedId;
+  const ring=sel?selRing(p):"";
+  if(p.type==="goal"){
+    const handle=sel?rotateHandle(p.id):"";
+    return `<g data-id="${p.id}" data-kind="piece" class="piece" transform="translate(${p.x},${p.y})">`+
+      `${ring}<g transform="rotate(${p.rot||0})">${pieceInner(p)}</g>${handle}</g>`;
+  }
+  return `<g data-id="${p.id}" data-kind="piece" class="piece" transform="translate(${p.x},${p.y})">${ring}${pieceInner(p)}</g>`;
+}
+function rotateGoal(id){
+  const p=board().pieces.find(x=>x.id===id);if(!p||p.type!=="goal")return;
+  pushHistory();p.rot=((p.rot||0)+90)%360;render();save();
 }
 
 /* ---------- drawing rendering ---------- */
@@ -584,6 +599,8 @@ stage.addEventListener("pointerdown",e=>{
     return;
   }
   if(activeTool==="select"){
+    const rotEl=e.target.closest('[data-rotate]');
+    if(rotEl){e.preventDefault();rotateGoal(rotEl.dataset.rotate);return;}
     if(pieceEl){e.preventDefault();startMove(pieceEl.dataset.id,pt);}
     else if(drawEl){select(drawEl.dataset.id);}
     else{select(null);}
@@ -754,6 +771,8 @@ document.getElementById("btnHelp").onclick=()=>alert(
   "• GOAL piece: double-click it to rotate 90°.\n"+
   "• DRAW: pick Arrow / Line / Dash / Pen, then drag on the court.\n"+
   "   – Hold SHIFT while drawing to lock to straight/clean angles.\n"+
+  "• ROTATE A GOAL: select it (Select tool) and tap the round ↻ button above it.\n"+
+  "   (You can also press R, or double-tap the goal.) Great for practice setups.\n"+
   "• DELETE: select a piece or line and press Delete, or use the Erase tool.\n"+
   "• UNDO/REDO: buttons on the left, or Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z.\n\n"+
   "• BOARDS: use the tabs up top. ＋ Board adds one; double-click a tab to rename; ✕ deletes.\n"+
@@ -769,6 +788,7 @@ window.addEventListener("keydown",e=>{
   if(tag==="INPUT"||tag==="SELECT"||tag==="TEXTAREA")return;
   if((e.key==="Delete"||e.key==="Backspace")&&selectedId){e.preventDefault();deleteSelected();}
   else if(e.key==="Escape"){select(null);}
+  else if((e.key==="r"||e.key==="R")&&selectedId){rotateGoal(selectedId);}
   else if((e.metaKey||e.ctrlKey)&&(e.key==="z"||e.key==="Z")){e.preventDefault();if(e.shiftKey)redoFn();else undo();}
   else if((e.metaKey||e.ctrlKey)&&(e.key==="y"||e.key==="Y")){e.preventDefault();redoFn();}
 });
