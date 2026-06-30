@@ -2,12 +2,21 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c141d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Polo Board">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-180.png">
 <title>Water Polo Whiteboard</title>
 <style>
   :root{
-    --off:#1f6fd4; --def:#d32f2f; --ink:#13283d; --line:#d9e2ec; --bg:#eef3f8;
-    --accent:#0b6bcb;
+    --off:#2f86ff; --def:#ff5247; --ink:#e7eef6; --line:#27384a; --bg:#0c141d;
+    --panel:#121d29; --panel2:#0f1822; --accent:#2f8fe0; --muted:#8aa0b6;
+    --water:#0c2942; --water-edge:#0a2236;
   }
   *{box-sizing:border-box}
   html,body{height:100%;margin:0}
@@ -18,60 +27,78 @@
   }
 
   /* ---- Top bar ---- */
-  #top{display:flex; align-items:center; gap:10px; padding:8px 12px; background:#fff;
+  #top{display:flex; align-items:center; gap:10px; padding:8px 12px; background:var(--panel);
        border-bottom:1px solid var(--line); flex:0 0 auto;}
   #brand{font-weight:800; font-size:16px; white-space:nowrap; margin-right:4px;}
   #tabs{display:flex; gap:6px; overflow-x:auto; flex:1 1 auto; align-items:center; min-width:0;}
   .tab{display:flex; align-items:center; gap:6px; padding:5px 10px; border:1px solid var(--line);
-       border-radius:8px; background:#f4f8fc; cursor:pointer; white-space:nowrap; font-size:13px;}
+       border-radius:8px; background:var(--panel2); color:var(--ink); cursor:pointer; white-space:nowrap; font-size:13px;}
   .tab.active{background:var(--accent); color:#fff; border-color:var(--accent);}
   .tab .x{opacity:.6; font-weight:700;}
   .tab .x:hover{opacity:1;}
-  .topbtn{padding:6px 10px; border:1px solid var(--line); background:#fff; border-radius:8px;
+  .topbtn{padding:6px 10px; border:1px solid var(--line); background:var(--panel2); color:var(--ink); border-radius:8px;
           cursor:pointer; font-size:13px; white-space:nowrap;}
-  .topbtn:hover{background:#f0f6ff; border-color:#bcd6f5;}
+  .topbtn:hover{background:#1b2937; border-color:#34526e;}
+  .topbtn.on{background:var(--accent); color:#fff; border-color:var(--accent);}
   #fileMenu{display:flex; gap:6px; flex:0 0 auto;}
 
   /* ---- Main ---- */
   #main{flex:1 1 auto; display:flex; min-height:0;}
-  #side{width:210px; flex:0 0 auto; background:#fff; border-right:1px solid var(--line);
+  #side{width:210px; flex:0 0 auto; background:var(--panel); border-right:1px solid var(--line);
         overflow-y:auto; padding:10px;}
   .group{margin-bottom:14px;}
   .group h4{margin:0 0 7px; font-size:11px; letter-spacing:.06em; text-transform:uppercase;
-            color:#65788c;}
+            color:var(--muted);}
   .toolgrid{display:grid; grid-template-columns:1fr 1fr; gap:6px;}
-  .tool{padding:7px 6px; border:1px solid var(--line); border-radius:8px; background:#f7fafd;
+  .tool{padding:7px 6px; border:1px solid var(--line); border-radius:8px; background:var(--panel2); color:var(--ink);
         cursor:pointer; font-size:12px; text-align:center; user-select:none;}
-  .tool:hover{background:#eef6ff;}
+  .tool:hover{background:#1b2937;}
   .tool.active{background:var(--accent); color:#fff; border-color:var(--accent);}
 
   .palette{display:grid; grid-template-columns:1fr 1fr; gap:6px;}
   .chip{display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 4px;
-        border:1px solid var(--line); border-radius:8px; background:#f7fafd; cursor:grab;
+        border:1px solid var(--line); border-radius:8px; background:var(--panel2); color:var(--ink); cursor:grab;
         font-size:11px; user-select:none; touch-action:none;}
   .chip:active{cursor:grabbing;}
   .chip svg{pointer-events:none;}
 
   .swatches{display:flex; flex-wrap:wrap; gap:6px; align-items:center;}
-  .swatch{width:22px; height:22px; border-radius:50%; border:2px solid #fff;
+  .swatch{width:22px; height:22px; border-radius:50%; border:2px solid var(--panel);
           box-shadow:0 0 0 1px var(--line); cursor:pointer;}
   .swatch.active{box-shadow:0 0 0 2px var(--accent);}
   #colorPick{width:34px; height:24px; padding:0; border:1px solid var(--line); border-radius:6px;
-             background:#fff; cursor:pointer;}
+             background:var(--panel2); cursor:pointer;}
 
   .rowbtns{display:flex; gap:6px;}
   .rowbtns .topbtn{flex:1; text-align:center;}
   select, .fld{width:100%; padding:6px; border:1px solid var(--line); border-radius:8px;
-               background:#fff; font-size:13px;}
-  .mini{font-size:11px; color:#7488a0; line-height:1.4; margin-top:6px;}
+               background:var(--panel2); color:var(--ink); font-size:13px;}
+  .mini{font-size:11px; color:var(--muted); line-height:1.4; margin-top:6px;}
 
   /* ---- Stage ---- */
-  #stageWrap{flex:1 1 auto; display:flex; align-items:center; justify-content:center;
+  #stageWrap{position:relative; flex:1 1 auto; display:flex; align-items:center; justify-content:center;
              padding:14px; min-width:0; background:
-             repeating-linear-gradient(45deg,#e7eef5 0 12px,#eaf1f7 12px 24px);}
+             repeating-linear-gradient(45deg,#0a121b 0 12px,#0c151f 12px 24px);}
   #stage{width:100%; height:100%; max-width:100%; max-height:100%;
-         background:#fff; border-radius:10px; box-shadow:0 4px 18px rgba(20,40,60,.14);
+         background:var(--water-edge); border-radius:10px; box-shadow:0 6px 22px rgba(0,0,0,.5);
          touch-action:none;}
+
+  /* ---- Play-mode transport bar ---- */
+  #transport{display:none; position:absolute; top:10px; left:50%; transform:translateX(-50%);
+    z-index:40; align-items:center; gap:6px; padding:7px 10px; border-radius:13px;
+    background:rgba(18,29,41,.95); border:1px solid var(--line); box-shadow:0 8px 22px rgba(0,0,0,.5);
+    max-width:calc(100% - 28px); overflow-x:auto;}
+  body.play #transport{display:flex;}
+  #transport .tbtn{padding:6px 10px; border:1px solid var(--line); background:var(--panel2); color:var(--ink);
+    border-radius:8px; cursor:pointer; font-size:13px; white-space:nowrap;}
+  #transport .tbtn:hover{background:#1b2937;}
+  #transport .tbtn.primary{background:var(--accent); color:#fff; border-color:var(--accent);}
+  #frameChips{display:flex; gap:4px; align-items:center;}
+  .fchip{min-width:26px; height:26px; padding:0 7px; border-radius:7px; border:1px solid var(--line);
+    background:var(--panel2); color:var(--ink); font-size:12px; font-weight:700; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;}
+  .fchip.active{background:var(--accent); color:#fff; border-color:var(--accent);}
+  #tHint{font-size:11px; color:var(--muted); white-space:nowrap;}
   #stageWrap[data-tool="select"] #stage{cursor:default;}
   #stageWrap[data-tool="erase"]  #stage{cursor:not-allowed;}
   #stageWrap[data-tool="line"]   #stage,
@@ -104,14 +131,15 @@
 
     #side{position:fixed; left:0; right:0; bottom:0; width:100%; height:auto; max-height:70vh;
       border-right:none; border-top:1px solid var(--line); border-radius:16px 16px 0 0;
-      box-shadow:0 -8px 24px rgba(0,0,0,.18); z-index:55;
+      box-shadow:0 -8px 24px rgba(0,0,0,.45); z-index:55;
       transform:translateY(106%); transition:transform .25s ease;
       display:flex; flex-wrap:wrap; align-content:flex-start; gap:14px; padding:14px 14px 24px;}
     body.panel-open #side{transform:translateY(0);}
 
     #sheetHandle{display:flex; align-items:center; justify-content:center; gap:8px;
       flex:1 1 100%; order:-1; padding:10px; margin:-2px 0 2px; cursor:pointer;
-      font-weight:800; color:var(--accent); background:#eef6ff; border-radius:10px;}
+      font-weight:800; color:var(--accent); background:rgba(47,143,224,.15); border-radius:10px;}
+    #transport{top:8px; padding:6px 8px;}
     .group{flex:1 1 150px; margin-bottom:6px;}
     .tool{padding:12px 6px; font-size:13px;}
     .chip{padding:10px 4px;}
@@ -124,6 +152,7 @@
   <div id="top">
     <div id="brand">🤽 Water Polo Whiteboard</div>
     <div id="tabs"></div>
+    <button class="topbtn" id="btnPlay">🎬 Play Mode</button>
     <button class="topbtn" id="addBoard">＋ Board</button>
     <div id="fileMenu">
       <button class="topbtn" id="btnPNG">Save Image</button>
@@ -147,7 +176,8 @@
           <div class="tool" data-tool="pen">✎ Pen</div>
           <div class="tool" data-tool="erase">⌫ Erase</div>
         </div>
-        <div class="mini">Tip: hold <b>Shift</b> while drawing a line/arrow to lock it to clean angles.</div>
+        <div class="mini">Tip: hold <b>Shift</b> while drawing a line/arrow to lock it to clean angles.<br>
+          <b>🎬 Play Mode</b> (top bar): drag an Arrow from a player, tap 🪄 Next, then ▶ Play to animate.</div>
       </div>
 
       <div class="group">
@@ -194,9 +224,11 @@
     </div>
 
     <div id="stageWrap" data-tool="select">
+      <div id="transport"></div>
       <svg id="stage" viewBox="0 0 660 430" preserveAspectRatio="xMidYMid meet">
         <g id="courtG"></g>
         <g id="drawG"></g>
+        <g id="motionG"></g>
         <g id="pieceG"></g>
       </svg>
     </div>
@@ -214,14 +246,24 @@ const STORE_KEY="wp_whiteboard_v1";
 const stage=document.getElementById("stage");
 const courtG=document.getElementById("courtG");
 const drawG=document.getElementById("drawG");
+const motionG=document.getElementById("motionG");
 const pieceG=document.getElementById("pieceG");
 const stageWrap=document.getElementById("stageWrap");
 
+/* court / pool theming (dark "sleeper" look) */
+const POOL="#0a2236", FIELD="#0c2942", COURT_LINE="#9fb4c6", COURT_BORDER="#37536e";
+
 let state=null;
 let activeTool="select";
-let drawColor="#13283d";
+let drawColor="#e7eef6";
 let selectedId=null;
 let history=[], redo=[];
+
+/* play mode (frame-by-frame "magic move" animation) */
+let playMode=false;          // is the Play-Mode UI active
+let playing=false;           // is an animation currently running
+let playTimer=0;             // animation interval handle
+let stagedMoves={};          // {pieceId:{x,y}} arrows drawn this step, pending a new frame
 
 /* ---------- small helpers ---------- */
 const uid=()=>"id"+Math.random().toString(36).slice(2,9)+Date.now().toString(36);
@@ -243,7 +285,7 @@ function clientToSvg(cx,cy){
 }
 
 /* ---------- persistence ---------- */
-function save(){try{localStorage.setItem(STORE_KEY,JSON.stringify(state));}catch(e){}}
+function save(){try{const b=board();if(b&&b.frames)syncFrame(b);localStorage.setItem(STORE_KEY,JSON.stringify(state));}catch(e){}}
 function load(){
   try{const raw=localStorage.getItem(STORE_KEY);if(!raw)return false;
     const s=JSON.parse(raw);
@@ -295,13 +337,13 @@ function halfEnd(goalY,dir,farEnd){
   let s="";
   // colored side rails (left & right)
   [L, R-8].forEach(x=>{
-    s+=seg(x,goalY,behind,"#111");
+    s+=seg(x,goalY,behind,COURT_LINE);
     s+=seg(x,goalY,y5,"#d33a2c");
     s+=seg(x,y5,y6,"#f5c518");
     s+=seg(x,y6,farEnd,"#2e9e3f");
   });
   // goal line
-  s+=`<line x1="${L}" y1="${goalY}" x2="${R}" y2="${goalY}" stroke="#111" stroke-width="2"/>`;
+  s+=`<line x1="${L}" y1="${goalY}" x2="${R}" y2="${goalY}" stroke="${COURT_LINE}" stroke-width="2"/>`;
   // red goal-area bars beside the cage (on the goal line)
   s+=`<rect x="${L}" y="${goalY-3}" width="${(cx-65)-L}" height="6" fill="#d33a2c"/>`;
   s+=`<rect x="${cx+65}" y="${goalY-3}" width="${R-(cx+65)}" height="6" fill="#d33a2c"/>`;
@@ -327,16 +369,16 @@ function buildCourt(layout){
   let w=660,h=430,s="";
   if(layout==="full")h=860;
   stage.setAttribute("viewBox",`0 0 ${w} ${h}`);
-  s+=`<rect class="bg" x="0" y="0" width="${w}" height="${h}" fill="#ffffff"/>`;
+  s+=`<rect class="bg" x="0" y="0" width="${w}" height="${h}" fill="${POOL}"/>`;
   if(layout==="blank"){
-    s+=`<rect x="16" y="16" width="${w-32}" height="${h-32}" fill="#f3fbff" stroke="#0b3d66" stroke-width="3" rx="6"/>`;
+    s+=`<rect x="16" y="16" width="${w-32}" height="${h-32}" fill="${FIELD}" stroke="${COURT_BORDER}" stroke-width="3" rx="6"/>`;
     return s;
   }
-  s+=`<rect x="14" y="14" width="${w-28}" height="${h-28}" fill="#ffffff" stroke="#111" stroke-width="2"/>`;
+  s+=`<rect x="14" y="14" width="${w-28}" height="${h-28}" fill="${FIELD}" stroke="${COURT_BORDER}" stroke-width="2"/>`;
   if(layout==="full"){
     s+=halfEnd(70,1,430);
     s+=halfEnd(790,-1,430);
-    s+=`<line x1="20" y1="430" x2="640" y2="430" stroke="#444" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>`;
+    s+=`<line x1="20" y1="430" x2="640" y2="430" stroke="${COURT_LINE}" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>`;
   }else{
     s+=halfEnd(70,1,416);
   }
@@ -363,7 +405,7 @@ function pieceInner(p){
            `<line x1="24" y1="-9" x2="24" y2="9"/><line x1="-32" y1="0" x2="32" y2="0"/></g>`;
   }
   if(p.type==="text"){
-    return `<text text-anchor="middle" dominant-baseline="central" font-size="18" font-weight="600" font-family="Arial" fill="${p.color||'#13283d'}" paint-order="stroke" stroke="#fff" stroke-width="3">${esc(p.text)}</text>`;
+    return `<text text-anchor="middle" dominant-baseline="central" font-size="18" font-weight="600" font-family="Arial" fill="${p.color||'#e7eef6'}" paint-order="stroke" stroke="#0a0f15" stroke-width="3">${esc(p.text)}</text>`;
   }
   // tokens: offense / defense / goalie
   const isGoalie=p.type==="goalie";
@@ -437,11 +479,13 @@ function renderDrawing(d){
 function render(){
   courtG.innerHTML=buildCourt(board().layout);
   drawG.innerHTML=board().drawings.map(renderDrawing).join("");
+  motionG.innerHTML=playMode?buildMotion(board()):"";
   pieceG.innerHTML=board().pieces.map(renderPiece).join("");
   document.getElementById("layoutSel").value=board().layout;
   stageWrap.dataset.tool=activeTool;
   renderTabs();
   renderTplSelect();
+  renderTransport();
 }
 function renderTabs(){
   const c=document.getElementById("tabs");c.innerHTML="";
@@ -449,7 +493,8 @@ function renderTabs(){
     const el=document.createElement("div");
     el.className="tab"+(b.id===state.activeBoardId?" active":"");
     el.innerHTML=`<span class="nm">${esc(b.name)}</span><span class="x" title="Delete board">✕</span>`;
-    el.querySelector(".nm").onclick=()=>{state.activeBoardId=b.id;selectedId=null;render();save();};
+    el.querySelector(".nm").onclick=()=>{stopPlay();stagedMoves={};state.activeBoardId=b.id;
+      if(playMode)ensureFrames(board());selectedId=null;render();save();};
     el.querySelector(".nm").ondblclick=()=>{const n=prompt("Rename board:",b.name);if(n!=null){b.name=n.trim()||b.name;render();save();}};
     el.querySelector(".x").onclick=(ev)=>{ev.stopPropagation();deleteBoard(b.id);};
     c.appendChild(el);
@@ -467,22 +512,132 @@ function renderTplSelect(){
 }
 
 /* ---------- history ---------- */
-function snapOf(b){return {boardId:b.id,layout:b.layout,pieces:clone(b.pieces),drawings:clone(b.drawings)};}
+function snapOf(b){return {boardId:b.id,layout:b.layout,pieces:clone(b.pieces),drawings:clone(b.drawings),
+  frames:b.frames?clone(b.frames):null,activeFrame:b.activeFrame||0};}
 function restore(s){const b=state.boards.find(x=>x.id===s.boardId);if(!b)return;
-  b.layout=s.layout;b.pieces=clone(s.pieces);b.drawings=clone(s.drawings);state.activeBoardId=b.id;}
+  b.layout=s.layout;b.pieces=clone(s.pieces);b.drawings=clone(s.drawings);
+  b.frames=s.frames?clone(s.frames):undefined;b.activeFrame=s.activeFrame||0;state.activeBoardId=b.id;}
 function pushHistory(){history.push(snapOf(board()));if(history.length>80)history.shift();redo=[];}
 function undo(){if(!history.length)return;redo.push(snapOf(board()));restore(history.pop());selectedId=null;render();save();}
 function redoFn(){if(!redo.length)return;history.push(snapOf(board()));restore(redo.pop());selectedId=null;render();save();}
 
+/* ---------- play mode: frames + "magic move" animation ---------- */
+// A frame is a snapshot of every piece's position: {id, pos:{pieceId:{x,y,rot}}}.
+// board.pieces always holds the live (currently-shown) positions; the active frame
+// mirrors them. Frames are created lazily so classic boards are untouched until you
+// open Play Mode.
+function snapshotPos(b){const m={};b.pieces.forEach(p=>m[p.id]={x:p.x,y:p.y,rot:p.rot||0});return m;}
+function ensureFrames(b){if(!b.frames){b.frames=[{id:uid(),pos:snapshotPos(b)}];b.activeFrame=0;}
+  if(b.activeFrame==null||b.activeFrame>=b.frames.length)b.activeFrame=b.frames.length-1;}
+function syncFrame(b){if(!b.frames)return;const f=b.frames[b.activeFrame];if(f)f.pos=snapshotPos(b);}
+function applyFrame(b,i){const f=b.frames&&b.frames[i];if(!f)return;b.activeFrame=i;
+  b.pieces.forEach(p=>{const q=f.pos[p.id];if(q){p.x=q.x;p.y=q.y;if(q.rot!=null)p.rot=q.rot;}});}
+function angDelta(a,b){let d=((b-a)%360+540)%360-180;return d;}     // shortest rotation
+function ease(k){k=Math.max(0,Math.min(1,k));return k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;}
+
+function addFrame(){const b=board();ensureFrames(b);pushHistory();syncFrame(b);
+  b.frames.splice(b.activeFrame+1,0,{id:uid(),pos:snapshotPos(b)});b.activeFrame++;
+  stagedMoves={};selectedId=null;render();save();}
+// Commit any arrows drawn this step into a brand-new frame (the "magic move").
+function applyStaged(){const b=board();ensureFrames(b);
+  if(!Object.keys(stagedMoves).length){addFrame();return;}
+  pushHistory();syncFrame(b);
+  const f={id:uid(),pos:snapshotPos(b)};
+  Object.entries(stagedMoves).forEach(([id,to])=>{if(f.pos[id])f.pos[id]={x:Math.round(to.x),y:Math.round(to.y),rot:f.pos[id].rot};});
+  b.frames.splice(b.activeFrame+1,0,f);b.activeFrame++;applyFrame(b,b.activeFrame);
+  stagedMoves={};selectedId=null;render();save();}
+function deleteFrame(){const b=board();ensureFrames(b);if(b.frames.length<=1)return;
+  pushHistory();b.frames.splice(b.activeFrame,1);
+  if(b.activeFrame>=b.frames.length)b.activeFrame=b.frames.length-1;
+  applyFrame(b,b.activeFrame);stagedMoves={};selectedId=null;render();save();}
+function gotoFrame(i){const b=board();ensureFrames(b);stopPlay();syncFrame(b);applyFrame(b,i);
+  stagedMoves={};selectedId=null;render();save();}
+
+function renderPlayFrame(){pieceG.innerHTML=board().pieces.map(renderPiece).join("");}
+function stopPlay(){if(!playing)return;playing=false;clearInterval(playTimer);
+  const b=board();applyFrame(b,b.activeFrame);render();}
+function playFrames(){const b=board();ensureFrames(b);if(b.frames.length<2)return;
+  syncFrame(b);selectedId=null;stagedMoves={};playing=true;renderTransport();
+  let idx=0;applyFrame(b,0);render();
+  const dur=850;let t0=performance.now();
+  clearInterval(playTimer);
+  playTimer=setInterval(()=>{
+    if(!playing){clearInterval(playTimer);return;}
+    let k=(performance.now()-t0)/dur;
+    if(k>=1){idx++;b.activeFrame=idx;t0=performance.now();k=0;
+      if(idx>=b.frames.length-1){applyFrame(b,b.frames.length-1);playing=false;clearInterval(playTimer);render();return;}}
+    const from=b.frames[idx].pos,to=b.frames[idx+1].pos,e=ease(k);
+    b.pieces.forEach(p=>{const a=from[p.id],c=to[p.id];if(a&&c){
+      p.x=a.x+(c.x-a.x)*e;p.y=a.y+(c.y-a.y)*e;
+      if(a.rot!=null&&c.rot!=null)p.rot=a.rot+angDelta(a.rot,c.rot)*e;}});
+    renderPlayFrame();
+  },16);}
+
+// motion arrows: faint path across the whole play + bright staged (pending) arrows
+function teamArrowColor(p){return (p.type==="defense"||p.type==="goalie")?"#ff8a80":"#7ec8ff";}
+function motionArrow(a,b,color,wide){
+  const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);if(len<6)return"";
+  const ux=dx/len,uy=dy/len,off=20;                 // start just outside the token
+  const x1=a.x+ux*off,y1=a.y+uy*off,x2=b.x,y2=b.y;
+  if(Math.hypot(x2-x1,y2-y1)<4)return"";
+  const w=wide?3.4:2.4;
+  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${w}" stroke-dasharray="9 7" stroke-linecap="round"/>`+
+         arrowHead(x1,y1,x2,y2,color);
+}
+function buildMotion(b){if(!b.frames)return"";let s="";
+  for(let i=0;i<b.frames.length-1;i++){const f0=b.frames[i].pos,f1=b.frames[i+1].pos;
+    b.pieces.forEach(p=>{const a=f0[p.id],c=f1[p.id];if(a&&c)s+=motionArrow(a,c,teamArrowColor(p),false);});}
+  Object.entries(stagedMoves).forEach(([id,to])=>{const p=b.pieces.find(x=>x.id===id);
+    if(p)s+=motionArrow({x:p.x,y:p.y},to,"#ffd54a",true);});
+  return s;}
+
+function startStagedMove(id,startPt){const p=board().pieces.find(x=>x.id===id);if(!p)return;
+  select(null);
+  const temp=document.createElementNS(SVGNS,"g");motionG.appendChild(temp);
+  beginInteraction((pt)=>{temp.innerHTML=motionArrow({x:p.x,y:p.y},pt,"#ffd54a",true);},
+    (pt)=>{temp.remove();if(Math.hypot(pt.x-p.x,pt.y-p.y)<6){delete stagedMoves[id];render();return;}
+      stagedMoves[id]={x:pt.x,y:pt.y};render();save();});}
+
+function setPlayMode(on){playMode=on;
+  if(playMode){ensureFrames(board());}
+  else{stopPlay();stagedMoves={};}
+  render();}
+
+function renderTransport(){
+  const bar=document.getElementById("transport");
+  document.body.classList.toggle("play",playMode);
+  document.getElementById("btnPlay").classList.toggle("on",playMode);
+  if(!playMode){bar.innerHTML="";return;}
+  const b=board();ensureFrames(b);
+  const chips=b.frames.map((f,i)=>`<div class="fchip${i===b.activeFrame?' active':''}" data-fi="${i}">${i+1}</div>`).join("");
+  const staged=Object.keys(stagedMoves).length;
+  const hint=b.frames.length<2
+    ? "Drag an arrow from a player (or move it), then tap 🪄"
+    : "Frame "+(b.activeFrame+1)+" / "+b.frames.length;
+  bar.innerHTML=
+    `<button class="tbtn primary" id="tPlay">${playing?'■ Stop':'▶ Play'}</button>`+
+    `<button class="tbtn" id="tReset" title="Jump to first frame">⏮</button>`+
+    `<div id="frameChips">${chips}</div>`+
+    `<button class="tbtn" id="tAdd" title="Make the next frame">🪄 Next${staged?' ('+staged+')':''}</button>`+
+    `<button class="tbtn" id="tDel" title="Delete this frame">🗑</button>`+
+    `<span id="tHint">${hint}</span>`;
+  bar.querySelector("#tPlay").onclick=()=>{playing?stopPlay():playFrames();};
+  bar.querySelector("#tReset").onclick=()=>gotoFrame(0);
+  bar.querySelector("#tAdd").onclick=()=>{stopPlay();applyStaged();};
+  bar.querySelector("#tDel").onclick=()=>{stopPlay();deleteFrame();};
+  bar.querySelectorAll(".fchip").forEach(ch=>ch.onclick=()=>gotoFrame(+ch.dataset.fi));
+}
+
 /* ---------- selection / deletion ---------- */
 function select(id){selectedId=id;render();}
+function forgetInFrames(b,id){if(b.frames)b.frames.forEach(f=>{delete f.pos[id];delete stagedMoves[id];});}
 function deleteSelected(){
   if(!selectedId)return;
   const b=board();
   const bp=b.pieces.length,bd=b.drawings.length;
   b.pieces=b.pieces.filter(p=>p.id!==selectedId);
   b.drawings=b.drawings.filter(d=>d.id!==selectedId);
-  if(b.pieces.length!==bp||b.drawings.length!==bd){pushHistory();}
+  if(b.pieces.length!==bp||b.drawings.length!==bd){pushHistory();forgetInFrames(b,selectedId);}
   selectedId=null;render();save();
 }
 function deleteById(id){
@@ -490,7 +645,7 @@ function deleteById(id){
   const before=b.pieces.length+b.drawings.length;
   b.pieces=b.pieces.filter(p=>p.id!==id);
   b.drawings=b.drawings.filter(d=>d.id!==id);
-  if(b.pieces.length+b.drawings.length!==before){pushHistory();render();save();}
+  if(b.pieces.length+b.drawings.length!==before){pushHistory();forgetInFrames(b,id);render();save();}
 }
 
 /* ---------- create pieces ---------- */
@@ -508,9 +663,11 @@ function addPiece(ptype,x,y){
   else if(ptype==="ball"){p.type="ball";}
   else if(ptype==="goal"){p.type="goal";p.rot=0;}
   else if(ptype==="cone"){p.type="cone";}
-  else if(ptype==="text"){p.type="text";const t=prompt("Text label:","");if(t===null)return;p.text=t||"Text";p.color="#13283d";}
+  else if(ptype==="text"){p.type="text";const t=prompt("Text label:","");if(t===null)return;p.text=t||"Text";p.color="#e7eef6";}
   pushHistory();
-  board().pieces.push(p);
+  const b=board();
+  b.pieces.push(p);
+  if(b.frames)b.frames.forEach(f=>f.pos[p.id]={x:p.x,y:p.y,rot:p.rot||0});  // exists in every frame
   select(p.id);save();
 }
 
@@ -590,9 +747,14 @@ function startDraw(startPt){
 }
 stage.addEventListener("pointerdown",e=>{
   if(e.button!==undefined&&e.button!==0)return;
+  if(playing)return;                         // ignore taps while a play is animating
   const pt=clientToSvg(e.clientX,e.clientY);
   const pieceEl=e.target.closest('[data-kind="piece"]');
   const drawEl=e.target.closest('[data-kind="draw"]');
+  // Play Mode: dragging an arrow out of a player stages its move for the next frame
+  if(playMode&&pieceEl&&(activeTool==="arrow"||activeTool==="darrow")){
+    e.preventDefault();startStagedMove(pieceEl.dataset.id,pt);return;
+  }
   if(activeTool==="erase"){
     if(pieceEl)deleteById(pieceEl.dataset.id);
     else if(drawEl)deleteById(drawEl.dataset.id);
@@ -646,6 +808,8 @@ function tplLoad(){
   pushHistory();
   const b=board();b.layout=t.layout;b.pieces=clone(t.pieces);b.drawings=clone(t.drawings);
   b.pieces.forEach(p=>p.id=uid());b.drawings.forEach(d=>d.id=uid());
+  b.frames=undefined;b.activeFrame=0;stagedMoves={};
+  if(playMode)ensureFrames(b);
   selectedId=null;render();save();
 }
 function tplSave(){
@@ -686,7 +850,7 @@ function exportPNG(){
   const wasSel=selectedId;selectedId=null;render();
   const v=vb(),w=v[2],h=v[3],scale=2;
   const svg=`<svg xmlns="${SVGNS}" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">`+
-    `<rect width="${w}" height="${h}" fill="#ffffff"/>${courtG.innerHTML}${drawG.innerHTML}${pieceG.innerHTML}</svg>`;
+    `<rect width="${w}" height="${h}" fill="${POOL}"/>${courtG.innerHTML}${drawG.innerHTML}${motionG.innerHTML}${pieceG.innerHTML}</svg>`;
   const url=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml"}));
   const img=new Image();
   img.onload=()=>{
@@ -734,7 +898,7 @@ PALETTE.forEach(([type,label])=>{
 });
 
 // color swatches
-const COLORS=["#13283d","#d32f2f","#1f6fd4","#2e9e3f","#f5a623","#9b27b0","#000000"];
+const COLORS=["#e7eef6","#ff5247","#2f86ff","#37d67a","#ffd54a","#c77dff","#0a0f15"];
 const swEl=document.getElementById("swatches");
 function setColor(c){drawColor=c;document.querySelectorAll(".swatch").forEach(s=>s.classList.toggle("active",s.dataset.c===c));}
 COLORS.forEach(c=>{
@@ -748,12 +912,14 @@ swEl.appendChild(picker);
 setColor(drawColor);
 
 // buttons
+document.getElementById("btnPlay").onclick=()=>setPlayMode(!playMode);
 document.getElementById("addBoard").onclick=newBoard;
 document.getElementById("layoutSel").onchange=e=>{pushHistory();board().layout=e.target.value;selectedId=null;render();save();};
 document.getElementById("btnUndo").onclick=undo;
 document.getElementById("btnRedo").onclick=redoFn;
 document.getElementById("btnClear").onclick=()=>{if(!confirm("Clear everything on this board?"))return;
-  pushHistory();board().pieces=[];board().drawings=[];selectedId=null;render();save();};
+  pushHistory();const b=board();b.pieces=[];b.drawings=[];b.frames=undefined;b.activeFrame=0;stagedMoves={};
+  if(playMode)ensureFrames(b);selectedId=null;render();save();};
 document.getElementById("btnTplLoad").onclick=tplLoad;
 document.getElementById("btnTplDefault").onclick=tplDefault;
 document.getElementById("btnTplSave").onclick=tplSave;
@@ -775,6 +941,13 @@ document.getElementById("btnHelp").onclick=()=>alert(
   "   (You can also press R, or double-tap the goal.) Great for practice setups.\n"+
   "• DELETE: select a piece or line and press Delete, or use the Erase tool.\n"+
   "• UNDO/REDO: buttons on the left, or Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z.\n\n"+
+  "🎬 PLAY MODE (animate a play):\n"+
+  "  1. Tap “Play Mode” up top. A control bar appears over the court.\n"+
+  "  2. Pick the Arrow tool and drag an arrow FROM a player to where it should go\n"+
+  "     (repeat for each player you want to move). Or just drag players directly.\n"+
+  "  3. Tap 🪄 Next to lock that in as the next frame.\n"+
+  "  4. Repeat to build more steps, then tap ▶ Play (or press Space) to watch the\n"+
+  "     pieces glide between frames. Click a numbered frame to jump to it; 🗑 deletes it.\n\n"+
   "• BOARDS: use the tabs up top. ＋ Board adds one; double-click a tab to rename; ✕ deletes.\n"+
   "• TEMPLATES: save the current board as a reusable template; ★ default is what new boards start from.\n"+
   "• SAVE IMAGE: export the current board as a PNG.\n"+
@@ -787,7 +960,8 @@ window.addEventListener("keydown",e=>{
   const tag=(document.activeElement&&document.activeElement.tagName)||"";
   if(tag==="INPUT"||tag==="SELECT"||tag==="TEXTAREA")return;
   if((e.key==="Delete"||e.key==="Backspace")&&selectedId){e.preventDefault();deleteSelected();}
-  else if(e.key==="Escape"){select(null);}
+  else if(e.key===" "&&playMode){e.preventDefault();playing?stopPlay():playFrames();}
+  else if(e.key==="Escape"){if(playing)stopPlay();else select(null);}
   else if((e.key==="r"||e.key==="R")&&selectedId){rotateGoal(selectedId);}
   else if((e.metaKey||e.ctrlKey)&&(e.key==="z"||e.key==="Z")){e.preventDefault();if(e.shiftKey)redoFn();else undo();}
   else if((e.metaKey||e.ctrlKey)&&(e.key==="y"||e.key==="Y")){e.preventDefault();redoFn();}
@@ -796,6 +970,11 @@ window.addEventListener("keydown",e=>{
 /* ---------- boot ---------- */
 if(!load())seed();
 render();
+
+/* ---------- PWA: offline support so it works from the Dock ---------- */
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{});});
+}
 </script>
 </body>
 </html>

@@ -1,22 +1,39 @@
 WATER POLO WHITEBOARD
 =====================
 
-A simple drag-and-drop tactics board for water polo. Everything lives in one
-file. No internet, no install, no accounts. Your work saves automatically.
+A drag-and-drop tactics board for water polo, in a dark "sleeper" look.
+Everything lives in one file. No accounts. Your work saves automatically.
+Now with a PLAY MODE that animates your plays (see below).
 
-The only file you need is:  whiteboard.html
-(The "server.js" file in this folder is just a helper used during testing. You
-can ignore or delete it — you do not need it to use the whiteboard.)
+The main file is:  whiteboard.html
+(The other files — server.js, manifest.webmanifest, sw.js, icon*.png/svg — are
+helpers for running it as a Dock app. See "PUT IT ON YOUR DOCK" below.)
 
 
 HOW TO OPEN (on your Mac)
 -------------------------
-Double-click  whiteboard.html.  It opens in your web browser (Chrome or Safari).
+Quickest: double-click  whiteboard.html.  It opens in your browser.
 
-Want it one click away?
-  • Mac Dock: drag whiteboard.html onto the right side of the Dock.
-  • Or in your browser: File > Add to Dock (Chrome) / drag the tab to make it
-    its own window, then add to Dock.
+
+PUT IT ON YOUR DOCK (install as an app)
+---------------------------------------
+This is now an installable app (a PWA), so it gets its own icon, opens in its
+own window, and works offline. Two ways:
+
+EASIEST — from the public web link (nothing to run):
+  1. Open this link in Safari (Mac):
+        https://matthewjfarmer12-gif.github.io/water-polo-whiteboard/
+     (Ask Claude to "publish the change" first so the link has the new look.)
+  2. Safari menu:  File > Add to Dock…  → give it a name → Add.
+  3. It now lives in your Dock with the water-polo-ball icon and launches like
+     a real app. (In Chrome instead: the ⋮ menu > Cast, Save, and Share >
+     "Install page as app".)
+
+FULLY LOCAL — run the tiny included server (works with no internet):
+  1. Open Terminal in this folder and run:   node server.js
+  2. In Chrome/Safari go to:   http://127.0.0.1:8753/
+  3. Install it to the Dock the same way (File > Add to Dock / Install as app).
+     It will keep working offline after that.
 
 
 USE IT ON YOUR iPHONE (or any device) — the web link
@@ -73,6 +90,30 @@ DELETE:
 
 UNDO / REDO:
   • Buttons on the left, or Cmd+Z (undo) and Shift+Cmd+Z (redo).
+
+
+PLAY MODE — animate a play ("magic move")
+-----------------------------------------
+Build a play step by step and watch the pieces glide between positions, like a
+Keynote "magic move."
+
+  1. Set up your starting formation, then tap "🎬 Play Mode" in the top bar.
+     A control bar appears over the court.
+  2. Tell the pieces where to go for the NEXT step. Two ways, mix freely:
+       • Pick the Arrow tool and drag an arrow FROM a player to where it should
+         end up. Do this for each player you want to move (yellow arrows show
+         the staged moves). A short drag back onto the player cancels its arrow.
+       • Or just drag players to their new spots with the Select tool.
+  3. Tap "🪄 Next" to lock that in as a new frame.
+  4. Repeat steps 2–3 to add more frames (each numbered chip is one frame).
+  5. Tap "▶ Play" (or press the Spacebar) to animate through all the frames.
+     Faint arrows trace the whole route; click any numbered frame to jump to it;
+     "⏮" returns to the first frame; "🗑" deletes the current frame.
+
+Tips:
+  • "Save Image" while in Play Mode includes the route arrows in the picture.
+  • Turn Play Mode off any time to go back to a plain board. Your frames are
+    saved with the board, so the animation is still there when you return.
 
 
 BOARDS (the tabs along the top)
