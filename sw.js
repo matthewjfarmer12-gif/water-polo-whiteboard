@@ -1,6 +1,6 @@
 /* Service worker — makes the whiteboard work offline once installed to the Dock.
    Strategy: cache-first with background refresh (stale-while-revalidate). */
-const CACHE = "wp-whiteboard-v5";
+const CACHE = "wp-whiteboard-v6";
 const ASSETS = [
   "./",
   "./whiteboard.html",

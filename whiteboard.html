@@ -650,7 +650,7 @@ function renderTransport(){
     `<span id="tHint">${hint}</span>`;
   bar.querySelector("#tPlay").onclick=()=>{playing?stopPlay():playFrames();};
   bar.querySelector("#tSpeed").onclick=()=>{
-    const speeds=[0.5,1,1.5,2];
+    const speeds=[0.25,0.5,1,1.5,2];
     state.playSpeed=speeds[(speeds.indexOf(state.playSpeed||1)+1)%speeds.length];
     renderTransport();save();};
   bar.querySelector("#tReset").onclick=()=>gotoFrame(0);
