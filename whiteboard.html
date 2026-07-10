@@ -207,6 +207,19 @@
       </div>
 
       <div class="group">
+        <h4>Saved Plays</h4>
+        <select id="playSel"></select>
+        <div class="rowbtns" style="margin-top:6px;">
+          <button class="topbtn" id="btnPlayLoad">Load</button>
+          <button class="topbtn" id="btnPlayDelete">Delete</button>
+        </div>
+        <div class="rowbtns" style="margin-top:6px;">
+          <button class="topbtn" id="btnPlaySave" style="flex:1;text-align:center;">Save Current Play…</button>
+        </div>
+        <div class="mini">Saves the whole play — every frame, arrows and all.</div>
+      </div>
+
+      <div class="group">
         <h4>Templates / Defaults</h4>
         <select id="tplSel"></select>
         <div class="rowbtns" style="margin-top:6px;">
@@ -485,6 +498,7 @@ function render(){
   stageWrap.dataset.tool=activeTool;
   renderTabs();
   renderTplSelect();
+  renderPlaySelect();
   renderTransport();
 }
 function renderTabs(){
@@ -850,6 +864,60 @@ function tplDelete(){
   render();save();
 }
 
+/* ---------- saved plays (whole board incl. every frame) ---------- */
+function plays(){return state.plays||(state.plays=[]);}
+function playSaveCurrent(){
+  const b=board();if(b.frames)syncFrame(b);   // capture latest edits into the active frame first
+  let name=prompt("Name this play:",b.name||"My Play");if(name===null)return;
+  name=name.trim()||"Play";
+  const data={layout:b.layout,pieces:clone(b.pieces),drawings:clone(b.drawings),
+    frames:b.frames?clone(b.frames):null,activeFrame:b.activeFrame||0};
+  const existing=plays().find(p=>p.name===name);
+  if(existing){
+    if(!confirm(`A play called "${name}" already exists. Overwrite it?`))return;
+    Object.assign(existing,data);
+  }else{
+    plays().push(Object.assign({id:uid(),name},data));
+    document.getElementById("playSel").value="";   // let the fresh list select it below
+  }
+  render();save();
+  const sel=document.getElementById("playSel");
+  const saved=plays().find(p=>p.name===name);if(saved)sel.value=saved.id;
+  alert(`"${name}" saved to your Plays list.`);
+}
+function playLoad(){
+  const id=document.getElementById("playSel").value;
+  const p=plays().find(x=>x.id===id);if(!p)return;
+  if(!confirm(`Load play "${p.name}" into the current board? This replaces what's on it.`))return;
+  pushHistory();stopPlay();
+  const b=board();b.layout=p.layout;b.pieces=clone(p.pieces);b.drawings=clone(p.drawings);
+  b.frames=p.frames?clone(p.frames):undefined;b.activeFrame=p.activeFrame||0;
+  stagedMoves={};selectedId=null;
+  if(b.frames){ensureFrames(b);applyFrame(b,b.activeFrame);playMode=true;}  // jump straight into Play Mode
+  render();save();
+}
+function playDelete(){
+  const id=document.getElementById("playSel").value;
+  const p=plays().find(x=>x.id===id);if(!p)return;
+  if(!confirm(`Delete play "${p.name}"? This cannot be undone.`))return;
+  state.plays=plays().filter(x=>x.id!==id);
+  render();save();
+}
+function renderPlaySelect(){
+  const sel=document.getElementById("playSel");if(!sel)return;
+  const cur=sel.value;sel.innerHTML="";
+  if(!plays().length){
+    const o=document.createElement("option");o.value="";o.textContent="(no saved plays yet)";sel.appendChild(o);
+  }
+  plays().forEach(p=>{
+    const o=document.createElement("option");o.value=p.id;
+    const n=p.frames?p.frames.length:0;
+    o.textContent=p.name+(n>1?`  (${n} frames)`:"");
+    sel.appendChild(o);
+  });
+  if([...sel.options].some(o=>o.value===cur))sel.value=cur;
+}
+
 /* ---------- export / import / png ---------- */
 function exportJSON(){download(JSON.stringify(state,null,2),"water-polo-whiteboard-backup.json","application/json");}
 function importJSON(file){
@@ -941,6 +1009,9 @@ document.getElementById("btnTplLoad").onclick=tplLoad;
 document.getElementById("btnTplDefault").onclick=tplDefault;
 document.getElementById("btnTplSave").onclick=tplSave;
 document.getElementById("btnTplDelete").onclick=tplDelete;
+document.getElementById("btnPlayLoad").onclick=playLoad;
+document.getElementById("btnPlaySave").onclick=playSaveCurrent;
+document.getElementById("btnPlayDelete").onclick=playDelete;
 document.getElementById("btnPNG").onclick=exportPNG;
 document.getElementById("btnExport").onclick=exportJSON;
 document.getElementById("btnImport").onclick=()=>document.getElementById("importFile").click();
@@ -966,6 +1037,7 @@ document.getElementById("btnHelp").onclick=()=>alert(
   "  4. Repeat to build more steps, then tap ▶ Play (or press Space) to watch the\n"+
   "     pieces glide between frames. Click a numbered frame to jump to it; 🗑 deletes it.\n\n"+
   "• BOARDS: use the tabs up top. ＋ Board adds one; double-click a tab to rename; ✕ deletes.\n"+
+  "• SAVED PLAYS: save the current play — every frame, arrows and all — and load it back any time.\n"+
   "• TEMPLATES: save the current board as a reusable template; ★ default is what new boards start from.\n"+
   "• SAVE IMAGE: export the current board as a PNG.\n"+
   "• BACKUP / RESTORE: save everything to a file, or load it back (also for moving to another computer).\n\n"+
