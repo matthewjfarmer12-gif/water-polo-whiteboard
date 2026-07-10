@@ -109,6 +109,16 @@
   .piece{cursor:grab;}
   #stageWrap[data-tool="erase"] .piece, #stageWrap[data-tool="erase"] .draw{cursor:not-allowed;}
 
+  /* ---- full-screen (focus) mode: just the court, nothing else ---- */
+  #focusExit{display:none; position:absolute; top:10px; right:10px; z-index:45;
+    padding:8px 12px; border-radius:10px; border:1px solid var(--line);
+    background:rgba(18,29,41,.92); color:var(--ink); cursor:pointer; font-size:13px;
+    box-shadow:0 6px 18px rgba(0,0,0,.45);}
+  #focusExit:hover{background:#1b2937;}
+  body.focus #focusExit{display:block;}
+  body.focus #top, body.focus #side, body.focus #panelToggle{display:none;}
+  body.focus #stageWrap{padding:8px;}
+
   /* drag preview that follows the cursor when dragging from the palette */
   .dragPreview{position:fixed; transform:translate(-50%,-50%); pointer-events:none; z-index:9999;
     width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center;
@@ -153,6 +163,7 @@
     <div id="brand">🤽 Water Polo Whiteboard</div>
     <div id="tabs"></div>
     <button class="topbtn" id="btnPlay">🎬 Play Mode</button>
+    <button class="topbtn" id="btnFocus" title="Full screen — hide everything but the court">⛶</button>
     <button class="topbtn" id="addBoard">＋ Board</button>
     <div id="fileMenu">
       <button class="topbtn" id="btnPNG">Save Image</button>
@@ -238,6 +249,7 @@
 
     <div id="stageWrap" data-tool="select">
       <div id="transport"></div>
+      <button id="focusExit" title="Exit full screen">⛶ Exit full screen</button>
       <svg id="stage" viewBox="0 0 660 430" preserveAspectRatio="xMidYMid meet">
         <g id="courtG"></g>
         <g id="drawG"></g>
@@ -954,6 +966,21 @@ const isMobile=()=>window.matchMedia("(max-width:820px)").matches;
 document.getElementById("panelToggle").onclick=()=>document.body.classList.add("panel-open");
 document.getElementById("sheetHandle").onclick=()=>document.body.classList.remove("panel-open");
 
+/* ---------- full-screen (focus) mode ---------- */
+function setFocusMode(on){
+  document.body.classList.toggle("focus",on);
+  if(on)document.body.classList.remove("panel-open");     // close the mobile sheet too
+  try{
+    if(on&&document.documentElement.requestFullscreen)document.documentElement.requestFullscreen();
+    else if(!on&&document.fullscreenElement)document.exitFullscreen();
+  }catch(e){}
+}
+document.getElementById("btnFocus").onclick=()=>setFocusMode(true);
+document.getElementById("focusExit").onclick=()=>setFocusMode(false);
+// leaving browser fullscreen (e.g. pressing Esc) also brings the dashboard back
+document.addEventListener("fullscreenchange",()=>{
+  if(!document.fullscreenElement)document.body.classList.remove("focus");});
+
 document.getElementById("tools").addEventListener("click",e=>{
   const t=e.target.closest(".tool");if(!t)return;
   activeTool=t.dataset.tool;
@@ -1037,6 +1064,7 @@ document.getElementById("btnHelp").onclick=()=>alert(
   "  4. Repeat to build more steps, then tap ▶ Play (or press Space) to watch the\n"+
   "     pieces glide between frames. Click a numbered frame to jump to it; 🗑 deletes it.\n\n"+
   "• BOARDS: use the tabs up top. ＋ Board adds one; double-click a tab to rename; ✕ deletes.\n"+
+  "• FULL SCREEN (⛶ or press F): hide everything but the court — great for showing the team. Esc exits.\n"+
   "• SAVED PLAYS: save the current play — every frame, arrows and all — and load it back any time.\n"+
   "• TEMPLATES: save the current board as a reusable template; ★ default is what new boards start from.\n"+
   "• SAVE IMAGE: export the current board as a PNG.\n"+
@@ -1050,7 +1078,11 @@ window.addEventListener("keydown",e=>{
   if(tag==="INPUT"||tag==="SELECT"||tag==="TEXTAREA")return;
   if((e.key==="Delete"||e.key==="Backspace")&&selectedId){e.preventDefault();deleteSelected();}
   else if(e.key===" "&&playMode){e.preventDefault();playing?stopPlay():playFrames();}
-  else if(e.key==="Escape"){if(playing)stopPlay();else select(null);}
+  else if(e.key==="f"||e.key==="F"){setFocusMode(!document.body.classList.contains("focus"));}
+  else if(e.key==="Escape"){
+    if(playing)stopPlay();
+    else if(document.body.classList.contains("focus"))setFocusMode(false);
+    else select(null);}
   else if((e.key==="r"||e.key==="R")&&selectedId){rotateGoal(selectedId);}
   else if((e.metaKey||e.ctrlKey)&&(e.key==="z"||e.key==="Z")){e.preventDefault();if(e.shiftKey)redoFn();else undo();}
   else if((e.metaKey||e.ctrlKey)&&(e.key==="y"||e.key==="Y")){e.preventDefault();redoFn();}
