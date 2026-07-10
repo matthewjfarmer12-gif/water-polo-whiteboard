@@ -565,10 +565,11 @@ function playFrames(){const b=board();ensureFrames(b);if(b.frames.length<2)retur
   syncFrame(b);selectedId=null;stagedMoves={};playing=true;renderTransport();
   let idx=0;applyFrame(b,0);render();
   motionG.innerHTML="";                       // hide planning arrows while the play runs
-  const dur=850;let t0=performance.now();
+  let t0=performance.now();
   clearInterval(playTimer);
   playTimer=setInterval(()=>{
     if(!playing){clearInterval(playTimer);return;}
+    const dur=850/(state.playSpeed||1);       // read live so speed changes apply mid-play
     let k=(performance.now()-t0)/dur;
     if(k>=1){idx++;b.activeFrame=idx;t0=performance.now();k=0;
       if(idx>=b.frames.length-1){applyFrame(b,b.frames.length-1);playing=false;clearInterval(playTimer);render();return;}
@@ -624,14 +625,20 @@ function renderTransport(){
   const hint=b.frames.length<2
     ? "Drag an arrow from a player (or move it), then tap 🪄"
     : "Frame "+(b.activeFrame+1)+" / "+b.frames.length;
+  const spd=state.playSpeed||1;
   bar.innerHTML=
     `<button class="tbtn primary" id="tPlay">${playing?'■ Stop':'▶ Play'}</button>`+
+    `<button class="tbtn" id="tSpeed" title="Playback speed">${spd}×</button>`+
     `<button class="tbtn" id="tReset" title="Jump to first frame">⏮</button>`+
     `<div id="frameChips">${chips}</div>`+
     `<button class="tbtn" id="tAdd" title="Make the next frame">🪄 Next${staged?' ('+staged+')':''}</button>`+
     `<button class="tbtn" id="tDel" title="Delete this frame">🗑</button>`+
     `<span id="tHint">${hint}</span>`;
   bar.querySelector("#tPlay").onclick=()=>{playing?stopPlay():playFrames();};
+  bar.querySelector("#tSpeed").onclick=()=>{
+    const speeds=[0.5,1,1.5,2];
+    state.playSpeed=speeds[(speeds.indexOf(state.playSpeed||1)+1)%speeds.length];
+    renderTransport();save();};
   bar.querySelector("#tReset").onclick=()=>gotoFrame(0);
   bar.querySelector("#tAdd").onclick=()=>{stopPlay();applyStaged();};
   bar.querySelector("#tDel").onclick=()=>{stopPlay();deleteFrame();};
