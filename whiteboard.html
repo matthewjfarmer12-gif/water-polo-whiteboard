@@ -522,27 +522,32 @@ function undo(){if(!history.length)return;redo.push(snapOf(board()));restore(his
 function redoFn(){if(!redo.length)return;history.push(snapOf(board()));restore(redo.pop());selectedId=null;render();save();}
 
 /* ---------- play mode: frames + "magic move" animation ---------- */
-// A frame is a snapshot of every piece's position: {id, pos:{pieceId:{x,y,rot}}}.
-// board.pieces always holds the live (currently-shown) positions; the active frame
-// mirrors them. Frames are created lazily so classic boards are untouched until you
-// open Play Mode.
+// A frame is a snapshot of every piece's position AND the board's drawings:
+// {id, pos:{pieceId:{x,y,rot}}, drawings:[...]}.
+// board.pieces / board.drawings always hold the live (currently-shown) state; the
+// active frame mirrors them, so every frame can be edited independently.
+// Frames are created lazily so classic boards are untouched until you open Play Mode.
 function snapshotPos(b){const m={};b.pieces.forEach(p=>m[p.id]={x:p.x,y:p.y,rot:p.rot||0});return m;}
-function ensureFrames(b){if(!b.frames){b.frames=[{id:uid(),pos:snapshotPos(b)}];b.activeFrame=0;}
+function ensureFrames(b){if(!b.frames){b.frames=[{id:uid(),pos:snapshotPos(b),drawings:clone(b.drawings)}];b.activeFrame=0;}
+  b.frames.forEach(f=>{if(!f.drawings)f.drawings=clone(b.drawings);});   // migrate plays saved before per-frame drawings
   if(b.activeFrame==null||b.activeFrame>=b.frames.length)b.activeFrame=b.frames.length-1;}
-function syncFrame(b){if(!b.frames)return;const f=b.frames[b.activeFrame];if(f)f.pos=snapshotPos(b);}
+function syncFrame(b){if(!b.frames)return;const f=b.frames[b.activeFrame];
+  if(f){f.pos=snapshotPos(b);f.drawings=clone(b.drawings);}}
 function applyFrame(b,i){const f=b.frames&&b.frames[i];if(!f)return;b.activeFrame=i;
-  b.pieces.forEach(p=>{const q=f.pos[p.id];if(q){p.x=q.x;p.y=q.y;if(q.rot!=null)p.rot=q.rot;}});}
+  b.pieces.forEach(p=>{const q=f.pos[p.id];if(q){p.x=q.x;p.y=q.y;if(q.rot!=null)p.rot=q.rot;}});
+  if(!f.drawings)f.drawings=clone(b.drawings);
+  b.drawings=clone(f.drawings);}
 function angDelta(a,b){let d=((b-a)%360+540)%360-180;return d;}     // shortest rotation
 function ease(k){k=Math.max(0,Math.min(1,k));return k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;}
 
 function addFrame(){const b=board();ensureFrames(b);pushHistory();syncFrame(b);
-  b.frames.splice(b.activeFrame+1,0,{id:uid(),pos:snapshotPos(b)});b.activeFrame++;
+  b.frames.splice(b.activeFrame+1,0,{id:uid(),pos:snapshotPos(b),drawings:clone(b.drawings)});b.activeFrame++;
   stagedMoves={};selectedId=null;render();save();}
 // Commit any arrows drawn this step into a brand-new frame (the "magic move").
 function applyStaged(){const b=board();ensureFrames(b);
   if(!Object.keys(stagedMoves).length){addFrame();return;}
   pushHistory();syncFrame(b);
-  const f={id:uid(),pos:snapshotPos(b)};
+  const f={id:uid(),pos:snapshotPos(b),drawings:clone(b.drawings)};
   Object.entries(stagedMoves).forEach(([id,to])=>{if(f.pos[id])f.pos[id]={x:Math.round(to.x),y:Math.round(to.y),rot:f.pos[id].rot};});
   b.frames.splice(b.activeFrame+1,0,f);b.activeFrame++;applyFrame(b,b.activeFrame);
   stagedMoves={};selectedId=null;render();save();}
@@ -559,13 +564,16 @@ function stopPlay(){if(!playing)return;playing=false;clearInterval(playTimer);
 function playFrames(){const b=board();ensureFrames(b);if(b.frames.length<2)return;
   syncFrame(b);selectedId=null;stagedMoves={};playing=true;renderTransport();
   let idx=0;applyFrame(b,0);render();
+  motionG.innerHTML="";                       // hide planning arrows while the play runs
   const dur=850;let t0=performance.now();
   clearInterval(playTimer);
   playTimer=setInterval(()=>{
     if(!playing){clearInterval(playTimer);return;}
     let k=(performance.now()-t0)/dur;
     if(k>=1){idx++;b.activeFrame=idx;t0=performance.now();k=0;
-      if(idx>=b.frames.length-1){applyFrame(b,b.frames.length-1);playing=false;clearInterval(playTimer);render();return;}}
+      if(idx>=b.frames.length-1){applyFrame(b,b.frames.length-1);playing=false;clearInterval(playTimer);render();return;}
+      const fd=b.frames[idx].drawings;        // show this frame's own annotations as we reach it
+      if(fd)drawG.innerHTML=fd.map(renderDrawing).join("");}
     const from=b.frames[idx].pos,to=b.frames[idx+1].pos,e=ease(k);
     b.pieces.forEach(p=>{const a=from[p.id],c=to[p.id];if(a&&c){
       p.x=a.x+(c.x-a.x)*e;p.y=a.y+(c.y-a.y)*e;
@@ -585,7 +593,9 @@ function motionArrow(a,b,color,wide){
          arrowHead(x1,y1,x2,y2,color);
 }
 function buildMotion(b){if(!b.frames)return"";let s="";
-  for(let i=0;i<b.frames.length-1;i++){const f0=b.frames[i].pos,f1=b.frames[i+1].pos;
+  // only show the movement leaving the CURRENT frame, so each frame reads on its own
+  const i=b.activeFrame;
+  if(i<b.frames.length-1){const f0=b.frames[i].pos,f1=b.frames[i+1].pos;
     b.pieces.forEach(p=>{const a=f0[p.id],c=f1[p.id];if(a&&c)s+=motionArrow(a,c,teamArrowColor(p),false);});}
   Object.entries(stagedMoves).forEach(([id,to])=>{const p=b.pieces.find(x=>x.id===id);
     if(p)s+=motionArrow({x:p.x,y:p.y},to,"#ffd54a",true);});
