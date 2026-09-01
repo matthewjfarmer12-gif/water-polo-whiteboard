@@ -201,6 +201,13 @@
         <div class="palette" id="palette"></div>
       </div>
 
+      <div class="group" id="pieceGroup" style="display:none;">
+        <h4>Selected Player</h4>
+        <input class="fld" id="pieceLabel" maxlength="3" autocomplete="off"
+               autocapitalize="characters" spellcheck="false" placeholder="e.g. 4 or MJF">
+        <div class="mini">A number, or up to 3 letters for initials.</div>
+      </div>
+
       <div class="group">
         <h4>This Board</h4>
         <select id="layoutSel">
@@ -238,12 +245,17 @@
           <button class="topbtn" id="btnTplDefault">Set Default</button>
         </div>
         <div class="rowbtns" style="margin-top:6px;">
+          <button class="topbtn" id="btnTplUpdate">Save Changes</button>
+          <button class="topbtn" id="btnTplRename">Rename</button>
+        </div>
+        <div class="rowbtns" style="margin-top:6px;">
           <button class="topbtn" id="btnTplSave" style="flex:1;text-align:center;">Save Board as Template…</button>
         </div>
         <div class="rowbtns" style="margin-top:6px;">
           <button class="topbtn" id="btnTplDelete" style="flex:1;text-align:center;">Delete Selected Template</button>
         </div>
-        <div class="mini">New boards start from the <b>default</b> template.</div>
+        <div class="mini"><b>Save Changes</b> overwrites the selected template with this board.
+          New boards start from the <b>default</b> template.</div>
       </div>
     </div>
 
@@ -442,8 +454,9 @@ function pieceInner(p){
        `<ellipse cx="${R-2}" cy="0" rx="5.5" ry="9" fill="${CAP_EAR}" stroke="#333" stroke-width="1"/>`;
   }
   s+=`<circle r="${R}" fill="${fill}" stroke="#0a2540" stroke-width="2"/>`;
-  const lbl=isGoalie?"G":(p.label!=null?p.label:"");
-  const fs=String(lbl).length>1?14:17;
+  const lbl=(p.label!=null&&p.label!=="")?String(p.label):(isGoalie?"G":"");
+  const n=lbl.length;
+  const fs=n>=3?11:(n===2?14:17);   // shrink so 2-3 initials still fit the token
   s+=`<text text-anchor="middle" dominant-baseline="central" font-size="${fs}" font-weight="700" font-family="Arial" fill="#fff">${esc(lbl)}</text>`;
   return s;
 }
@@ -511,6 +524,7 @@ function render(){
   renderTabs();
   renderTplSelect();
   renderPlaySelect();
+  renderPieceEditor();
   renderTransport();
 }
 function renderTabs(){
@@ -817,8 +831,8 @@ stage.addEventListener("dblclick",e=>{
   const el=e.target.closest('[data-kind="piece"]');if(!el)return;
   const p=board().pieces.find(x=>x.id===el.dataset.id);if(!p)return;
   if(p.type==="offense"||p.type==="defense"||p.type==="goalie"){
-    const v=prompt("Label / number for this player:",p.label||"");
-    if(v===null)return;pushHistory();p.label=v.trim();render();save();
+    const v=prompt("Number or initials for this player (up to 3 characters):",p.label||"");
+    if(v===null)return;pushHistory();p.label=v.trim().slice(0,3);render();save();
   }else if(p.type==="text"){
     const v=prompt("Text:",p.text||"");if(v===null)return;pushHistory();p.text=v;render();save();
   }else if(p.type==="goal"){
@@ -874,6 +888,35 @@ function tplDelete(){
   state.templates=state.templates.filter(x=>x.id!==id);
   if(state.defaultTemplateId===id)state.defaultTemplateId=state.templates[0].id;
   render();save();
+}
+
+function tplUpdate(){
+  const id=document.getElementById("tplSel").value;
+  const t=state.templates.find(x=>x.id===id);if(!t)return;
+  if(!confirm(`Save this board into template "${t.name}"? It replaces what the template held.`))return;
+  const b=board();
+  t.layout=b.layout;t.pieces=clone(b.pieces);t.drawings=clone(b.drawings);
+  render();save();alert(`Template "${t.name}" updated.`);
+}
+function tplRename(){
+  const id=document.getElementById("tplSel").value;
+  const t=state.templates.find(x=>x.id===id);if(!t)return;
+  const n=prompt("Rename template:",t.name);if(n===null)return;
+  t.name=n.trim()||t.name;render();save();
+}
+
+/* ---------- selected-player label editor (numbers or initials) ---------- */
+function editablePiece(){
+  const p=board().pieces.find(x=>x.id===selectedId);
+  return (p&&(p.type==="offense"||p.type==="defense"||p.type==="goalie"))?p:null;
+}
+function renderPieceEditor(){
+  const g=document.getElementById("pieceGroup"),inp=document.getElementById("pieceLabel");
+  if(!g||!inp)return;
+  const p=editablePiece();
+  g.style.display=p?"":"none";
+  // don't clobber what's being typed
+  if(p&&document.activeElement!==inp)inp.value=p.label!=null?p.label:"";
 }
 
 /* ---------- saved plays (whole board incl. every frame) ---------- */
@@ -1036,6 +1079,16 @@ document.getElementById("btnTplLoad").onclick=tplLoad;
 document.getElementById("btnTplDefault").onclick=tplDefault;
 document.getElementById("btnTplSave").onclick=tplSave;
 document.getElementById("btnTplDelete").onclick=tplDelete;
+document.getElementById("btnTplUpdate").onclick=tplUpdate;
+document.getElementById("btnTplRename").onclick=tplRename;
+(function(){
+  const inp=document.getElementById("pieceLabel");
+  inp.addEventListener("focus",()=>{if(editablePiece())pushHistory();});
+  inp.addEventListener("input",()=>{
+    const p=editablePiece();if(!p)return;
+    p.label=inp.value.slice(0,3);render();save();});
+  inp.addEventListener("keydown",e=>{if(e.key==="Enter")inp.blur();});
+})();
 document.getElementById("btnPlayLoad").onclick=playLoad;
 document.getElementById("btnPlaySave").onclick=playSaveCurrent;
 document.getElementById("btnPlayDelete").onclick=playDelete;
@@ -1047,7 +1100,8 @@ document.getElementById("btnHelp").onclick=()=>alert(
   "WATER POLO WHITEBOARD — quick guide\n\n"+
   "• PIECES: drag any piece from the left onto the court (or click it to drop in the middle).\n"+
   "• MOVE: with the Select tool, drag any piece to reposition it.\n"+
-  "• EDIT A NUMBER: double-click a player to change its number/label.\n"+
+  "• EDIT A NUMBER OR INITIALS: double-click a player, or select it and use the\n"+
+  "   “Selected Player” box on the left. Up to 3 characters — e.g. 4, or MJF.\n"+
   "   – Offense 1–7 (7 automatically wears a goalie cap). Defense 1–6.\n"+
   "• GOAL piece: double-click it to rotate 90°.\n"+
   "• DRAW: pick Arrow / Line / Dash / Pen, then drag on the court.\n"+
@@ -1067,6 +1121,7 @@ document.getElementById("btnHelp").onclick=()=>alert(
   "• FULL SCREEN (⛶ or press F): hide everything but the court — great for showing the team. Esc exits.\n"+
   "• SAVED PLAYS: save the current play — every frame, arrows and all — and load it back any time.\n"+
   "• TEMPLATES: save the current board as a reusable template; ★ default is what new boards start from.\n"+
+  "   – Edit one by loading it, changing the board, then tapping “Save Changes”. “Rename” renames it.\n"+
   "• SAVE IMAGE: export the current board as a PNG.\n"+
   "• BACKUP / RESTORE: save everything to a file, or load it back (also for moving to another computer).\n\n"+
   "Your work saves automatically in this browser."
