@@ -101,6 +101,7 @@
   #tHint{font-size:11px; color:var(--muted); white-space:nowrap;}
   #stageWrap[data-tool="select"] #stage, #stageWrap[data-tool="move"] #stage{cursor:default;}
   #stageWrap[data-tool="draw"] #stage{cursor:crosshair;}
+  #stageWrap[data-tool="text"] #stage{cursor:text;}
   .piece{cursor:grab;}
   #stageWrap[data-tool="select"] .piece, #stageWrap[data-tool="select"] .draw{cursor:pointer;}
   #stageWrap[data-tool="move"] .draw{cursor:grab;}
@@ -118,6 +119,7 @@
   #selMenu .mbtn.danger{color:#ff8a80;}
   #selMenu input{width:104px; padding:6px 8px; border:1px solid var(--line); border-radius:8px;
     background:var(--panel2); color:var(--ink); font-size:16px;}
+  #selMenu input#selText{width:190px;}
 
   /* ---- full-screen (focus) mode: just the court, nothing else ---- */
   #focusExit{display:none; position:absolute; top:10px; right:10px; z-index:45;
@@ -192,10 +194,12 @@
           <div class="tool active" data-tool="select">▶ Select</div>
           <div class="tool" data-tool="move">✥ Move</div>
           <div class="tool" data-tool="draw">→ Draw</div>
+          <div class="tool" data-tool="text">T Text</div>
           <div class="tool" data-action="undo">↶ Undo</div>
         </div>
         <div class="mini"><b>Select</b>: tap a player to add initials, or tap a line to make it a
           dashed arrow, a normal arrow, or delete it.<br>
+          <b>Text</b>: tap the court where you want a text box, then type.<br>
           <b>🎬 Play Mode</b> (top bar): with Draw, drag an arrow from a player, tap 🪄 Next, then ▶ Play.</div>
       </div>
 
@@ -444,7 +448,9 @@ function pieceInner(p){
            `<line x1="24" y1="-9" x2="24" y2="9"/><line x1="-32" y1="0" x2="32" y2="0"/></g>`;
   }
   if(p.type==="text"){
-    return `<text text-anchor="middle" dominant-baseline="central" font-size="18" font-weight="600" font-family="Arial" fill="${p.color||'#e7eef6'}" paint-order="stroke" stroke="#0a0f15" stroke-width="3">${esc(p.text)}</text>`;
+    const w=textW(p.text)+18;
+    return `<rect x="${-w/2}" y="-15" width="${w}" height="30" rx="7" fill="rgba(8,14,22,.72)" stroke="rgba(255,255,255,.28)" stroke-width="1"/>`+
+           `<text text-anchor="middle" dominant-baseline="central" font-size="18" font-weight="600" font-family="Arial" fill="${p.color||'#e7eef6'}">${esc(p.text)}</text>`;
   }
   // tokens: offense / defense / goalie
   const isGoalie=p.type==="goalie";
@@ -462,9 +468,12 @@ function pieceInner(p){
   s+=`<text text-anchor="middle" dominant-baseline="central" font-size="${fs}" font-weight="700" font-family="Arial" fill="#fff">${esc(lbl)}</text>`;
   return s;
 }
+const _measure=document.createElement("canvas").getContext("2d");
+function textW(t){_measure.font="600 18px Arial";return Math.max(24,_measure.measureText(String(t==null?"":t)).width);}
 function selRing(p){
   if(p.type==="goal") return `<circle r="40" fill="none" stroke="#ff9800" stroke-width="2.5" stroke-dasharray="5 3"/>`;
-  if(p.type==="text") return `<rect x="-34" y="-15" width="68" height="30" fill="none" stroke="#ff9800" stroke-width="2.5" stroke-dasharray="5 3"/>`;
+  if(p.type==="text"){const w=textW(p.text)+30;
+    return `<rect x="${-w/2}" y="-21" width="${w}" height="42" rx="9" fill="none" stroke="#ff9800" stroke-width="2.5" stroke-dasharray="5 3"/>`;}
   return `<circle r="24" fill="none" stroke="#ff9800" stroke-width="2.5" stroke-dasharray="5 3"/>`;
 }
 function rotateHandle(id){
@@ -688,7 +697,15 @@ function renderTransport(){
 }
 
 /* ---------- selection / deletion ---------- */
-function select(id){selectedId=id;render();}
+function select(id){
+  let dropped=false;
+  if(selectedId&&selectedId!==id){
+    const b=board(),t=b.pieces.find(x=>x.id===selectedId);
+    if(t&&t.type==="text"&&!String(t.text||"").trim()){      // empty text box: remove it
+      b.pieces=b.pieces.filter(x=>x!==t);forgetInFrames(b,t.id);dropped=true;}
+  }
+  selectedId=id;render();if(dropped)save();
+}
 function forgetInFrames(b,id){if(b.frames)b.frames.forEach(f=>{delete f.pos[id];delete stagedMoves[id];});}
 function deleteSelected(){
   if(!selectedId)return;
@@ -722,7 +739,7 @@ function addPiece(ptype,x,y){
   else if(ptype==="ball"){p.type="ball";}
   else if(ptype==="goal"){p.type="goal";p.rot=0;}
   else if(ptype==="cone"){p.type="cone";}
-  else if(ptype==="text"){p.type="text";const t=prompt("Text label:","");if(t===null)return;p.text=t||"Text";p.color="#e7eef6";}
+  else if(ptype==="text"){p.type="text";p.text="Text";p.color=drawColor;focusTextId=p.id;}
   pushHistory();
   const b=board();
   b.pieces.push(p);
@@ -827,6 +844,17 @@ stage.addEventListener("pointerdown",e=>{
     const hit=pieceEl||drawEl;
     startDraw(pt,hit?hit.dataset.id:null);return;
   }
+  if(activeTool==="text"){
+    e.preventDefault();
+    const tp=pieceEl&&board().pieces.find(x=>x.id===pieceEl.dataset.id);
+    // act on release, so the typing box can take the keyboard focus (a press would steal it back)
+    beginInteraction(()=>{},()=>{
+      setTool("select");                       // one box per tap; next tap won't drop another
+      if(tp&&tp.type==="text"){focusTextId=tp.id;select(tp.id);}   // tapped an existing box: edit it
+      else addPiece("text",pt.x,pt.y);
+    });
+    return;
+  }
   // Select: tap = open its menu (dragging still moves it).  Move: drag only, no menus.
   const tap=activeTool==="select";
   if(pieceEl){e.preventDefault();startMove(pieceEl.dataset.id,pt,tap);}
@@ -836,9 +864,7 @@ stage.addEventListener("pointerdown",e=>{
 stage.addEventListener("dblclick",e=>{
   const el=e.target.closest('[data-kind="piece"]');if(!el)return;
   const p=board().pieces.find(x=>x.id===el.dataset.id);if(!p)return;
-  if(p.type==="text"){
-    const v=prompt("Text:",p.text||"");if(v===null)return;pushHistory();p.text=v;render();save();
-  }else if(p.type==="goal"){
+  if(p.type==="goal"){
     pushHistory();p.rot=((p.rot||0)+90)%360;render();save();
   }
 });
@@ -914,7 +940,7 @@ function editablePiece(){
   return (p&&(p.type==="offense"||p.type==="defense"||p.type==="goalie"))?p:null;
 }
 /* ---------- on-court menu for whatever is selected ---------- */
-let menuFor=null;
+let menuFor=null,focusTextId=null;
 function renderSelMenu(){
   const m=document.getElementById("selMenu");if(!m)return;
   const b=board();
@@ -929,7 +955,9 @@ function renderSelMenu(){
       if(p.type==="offense"||p.type==="defense"||p.type==="goalie")
         h+=`<input id="selLabel" maxlength="3" autocomplete="off" autocapitalize="characters" spellcheck="false" `+
            `placeholder="# or initials" title="Number or up to 3 initials" value="${esc(p.label!=null?p.label:"")}">`;
-      else if(p.type==="text")h+=`<button class="mbtn" data-act="text">✎ Edit text</button>`;
+      else if(p.type==="text")
+        h+=`<input id="selText" maxlength="60" autocomplete="off" spellcheck="false" placeholder="Type here" `+
+           `title="Text" value="${esc(p.text!=null?p.text:"")}">`;
       else if(p.type==="goal")h+=`<button class="mbtn" data-act="rotate">↻ Rotate</button>`;
     }else if(d.shape==="free"){
       h+=`<button class="mbtn${d.dashed?"":" on"}" data-act="solid">— Solid</button>`+
@@ -941,6 +969,11 @@ function renderSelMenu(){
     }
     h+=`<button class="mbtn danger" data-act="delete">🗑 Delete</button>`;
     m.innerHTML=h;menuFor=selectedId;
+    m.classList.add("show");                              // must be visible before it can take focus
+    if(focusTextId&&focusTextId===selectedId){            // brand-new text box: ready to type over
+      const ti=m.querySelector("#selText");if(ti){ti.focus();ti.select();}
+    }
+    focusTextId=null;
   }
   m.classList.add("show");
   // place it just below the thing (or above when there's no room), kept inside the court area
@@ -964,10 +997,6 @@ function selMenuAction(act){
   const b=board();
   if(act==="delete"){deleteSelected();return;}
   if(act==="rotate"){rotateGoal(selectedId);return;}
-  if(act==="text"){
-    const p=b.pieces.find(x=>x.id===selectedId);if(!p)return;
-    const v=prompt("Text:",p.text||"");if(v===null)return;pushHistory();p.text=v;render();save();return;
-  }
   const d=b.drawings.find(x=>x.id===selectedId);if(!d)return;
   pushHistory();
   if(act==="arrow"){d.shape="arrow";d.dashed=false;}
@@ -1082,12 +1111,15 @@ document.getElementById("focusExit").onclick=()=>setFocusMode(false);
 document.addEventListener("fullscreenchange",()=>{
   if(!document.fullscreenElement)document.body.classList.remove("focus");});
 
+function setTool(name){
+  activeTool=name;
+  document.querySelectorAll("#tools .tool").forEach(x=>x.classList.toggle("active",x.dataset.tool===name));
+  stageWrap.dataset.tool=activeTool;
+}
 document.getElementById("tools").addEventListener("click",e=>{
   const t=e.target.closest(".tool");if(!t)return;
   if(t.dataset.action==="undo"){undo();return;}        // Undo is a button, not a mode
-  activeTool=t.dataset.tool;
-  document.querySelectorAll("#tools .tool").forEach(x=>x.classList.toggle("active",x===t));
-  stageWrap.dataset.tool=activeTool;
+  setTool(t.dataset.tool);
   select(null);
   if(isMobile())document.body.classList.remove("panel-open");  // close sheet so you can draw
 });
@@ -1105,7 +1137,7 @@ PALETTE.forEach(([type,label])=>{
   else if(type==="ball")prev=`<circle cx="15" cy="15" r="10" fill="${BALL}" stroke="#a07800" stroke-width="2"/>`;
   else if(type==="goal")prev=`<rect x="3" y="11" width="24" height="8" fill="#fff" stroke="#111" stroke-width="2"/>`;
   else if(type==="cone")prev=`<path d="M15,4 L24,24 L6,24 Z" fill="${CONE}" stroke="#8a4500" stroke-width="1.6"/>`;
-  else if(type==="text")prev=`<text x="15" y="17" font-size="16" font-weight="700" fill="#13283d" text-anchor="middle" dominant-baseline="central">T</text>`;
+  else if(type==="text")prev=`<text x="15" y="17" font-size="18" font-weight="700" fill="#e7eef6" text-anchor="middle" dominant-baseline="central">T</text>`;
   chip.innerHTML=`<svg width="30" height="30" viewBox="0 0 30 30">${prev}</svg><span>${label}</span>`;
   chip.addEventListener("pointerdown",e=>startPaletteDrag(type,e));
   paletteEl.appendChild(chip);
@@ -1143,13 +1175,17 @@ document.getElementById("btnTplRename").onclick=tplRename;
 (function(){
   const m=document.getElementById("selMenu");
   m.addEventListener("click",e=>{const bt=e.target.closest("[data-act]");if(bt)selMenuAction(bt.dataset.act);});
-  m.addEventListener("focusin",e=>{if(e.target.id==="selLabel"&&editablePiece())pushHistory();});
+  m.addEventListener("focusin",e=>{if(e.target.tagName==="INPUT")pushHistory();});
   m.addEventListener("input",e=>{
-    if(e.target.id!=="selLabel")return;
-    const p=editablePiece();if(!p)return;
-    p.label=e.target.value.slice(0,3);render();save();});
+    if(e.target.id==="selLabel"){
+      const p=editablePiece();if(!p)return;
+      p.label=e.target.value.slice(0,3);render();save();
+    }else if(e.target.id==="selText"){
+      const p=board().pieces.find(x=>x.id===selectedId);if(!p||p.type!=="text")return;
+      p.text=e.target.value;render();save();
+    }});
   m.addEventListener("keydown",e=>{
-    if(e.target.id==="selLabel"&&(e.key==="Enter"||e.key==="Escape")){e.target.blur();select(null);}});
+    if(e.target.tagName==="INPUT"&&(e.key==="Enter"||e.key==="Escape")){e.target.blur();select(null);}});
   window.addEventListener("resize",renderSelMenu);
 })();
 document.getElementById("btnPlayLoad").onclick=playLoad;
@@ -1162,7 +1198,9 @@ document.getElementById("importFile").onchange=e=>{if(e.target.files[0])importJS
 document.getElementById("btnHelp").onclick=()=>alert(
   "WATER POLO WHITEBOARD — quick guide\n\n"+
   "• PIECES: drag any piece from the left onto the court (or click it to drop in the middle).\n"+
-  "• TOOLS: Select, Move, Draw, Undo.\n"+
+  "• TOOLS: Select, Move, Draw, Text, Undo.\n"+
+  "• TEXT BOX: pick Text, tap the court where you want it, and type. Tap a text box\n"+
+  "   later (Select tool) to change the words or delete it; Move drags it.\n"+
   "• MOVE: pick Move and drag any piece or line. (Dragging with Select works too.)\n"+
   "• NUMBER OR INITIALS: with Select, tap a player and type in the box that pops up.\n"+
   "   Up to 3 characters — e.g. 4, or MJF.\n"+
